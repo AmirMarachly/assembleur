@@ -3,50 +3,56 @@ import sys
 
 class CPU:
     def __init__(self):
-        self.registers = [bytes(1)] * 16
-        self.memory = [bytes(1)] * 256
-        self.pointer = 0
+        self.registers = [ubyte()] * 16
+        self.memory = [ubyte()] * 256
+        self.pointer = ubyte(0)
+        self.has_jumped = False
 
         self._init_operations()
 
     def _init_operations(self):
         self.operations = [None] * 16
 
-        self.operations[0] = self._load_m
-        self.operations[1] = self._store
+        self.operations[0] = self._load_addr
+        self.operations[1] = self._store_addr
         self.operations[2] = self._jump
         self.operations[3] = self._add
         self.operations[4] = self._sub
         self.operations[5] = self._dec
         self.operations[6] = self._inc
-        self.operations[7] = self._load_r
+        self.operations[7] = self._load_const
+        self.operations[8] = self._copy
         self.operations[15] = self._stop
 
-    def _load_m(self, i):
+    def _load_addr(self, i):
         self.registers[i[0] & 0x0F] = self.memory[i[1]]
 
-    def _store(self, i):
+    def _store_addr(self, i):
         self.memory[i[1]] = self.registers[i[0] & 0x0F]
 
     def _jump(self, i):
-        if self.registers[i[0] & 0x0F] == 0:
-            self.pointer = int(i)
+        if self.registers[i[0] & 0x0F] == ubyte(0):
+            self.pointer = i[1]
+            self.has_jumped = True
     
     def _add(self, i):
-        self.registers[i[0] & 0x0F] = bytes([self.registers[i[1] >> 4][0] + self.registers[i[1] & 0x0F][0]])
+        self.registers[i[0] & 0x0F] = self.registers[i[1] >> 4] + self.registers[i[1] & 0x0F]
     
     def _sub(self, i):
         self.registers[i[0] & 0x0F] = self.registers[i[1] >> 4] - self.registers[i[1] & 0x0F]
     
     def _dec(self, i):
-        self.registers[i[0] & 0x0F] -= 1
+        self.registers[i[0] & 0x0F] -= ubyte(1)
     
     def _inc(self, i):
-        self.registers[i[0] & 0x0F] += 1
+        self.registers[i[0] & 0x0F] += ubyte(1)
         
-    def _load_r(self, i):
-        self.registers[i[0] & 0x0F] = bytes([i[1]])
-    
+    def _load_const(self, i):
+        self.registers[i[0] & 0x0F] = i[1]
+
+    def _copy(self, i):
+        self.registers[i[0] & 0x0F] = self.registers[i[1] >> 4]
+
     def _stop(self, i):
         print(self.registers)
         print(self.memory)
@@ -55,16 +61,19 @@ class CPU:
     def read(self, filename):
         with open(filename, "rb") as file:
             self.instructions = file.read()
-            self.pointer = 0
+            self.pointer = ubyte(0)
         
     def next_instruction(self):
+        self.has_jumped = False
+
         i = self.instructions[self.pointer : self.pointer + 2]
-        self.operations[i[0] >> 4](i)
-        self.pointer += 2
+        self.operations[i[0] >> 4]([ubyte(i[0]), ubyte(i[1])])
+        
+        if not self.has_jumped:
+            self.pointer += ubyte(2)
 
 if __name__ == "__main__":
     cpu = CPU()
-
     cpu.read("hello.txt")
 
     while True:
