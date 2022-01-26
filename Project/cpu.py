@@ -13,21 +13,21 @@ class CPU:
     def _init_operations(self):
         self.operations = [None] * 16
 
-        self.operations[0] = self._load_addr
-        self.operations[1] = self._store_addr
+        self.operations[0] = self._loadm
+        self.operations[1] = self._store
         self.operations[2] = self._jump
         self.operations[3] = self._add
         self.operations[4] = self._sub
         self.operations[5] = self._dec
         self.operations[6] = self._inc
-        self.operations[7] = self._load_const
+        self.operations[7] = self._loadc
         self.operations[8] = self._copy
         self.operations[15] = self._stop
 
-    def _load_addr(self, i):
+    def _loadm(self, i):
         self.registers[i[0] & 0x0F] = self.memory[i[1]]
 
-    def _store_addr(self, i):
+    def _store(self, i):
         self.memory[i[1]] = self.registers[i[0] & 0x0F]
 
     def _jump(self, i):
@@ -47,7 +47,7 @@ class CPU:
     def _inc(self, i):
         self.registers[i[0] & 0x0F] += ubyte(1)
         
-    def _load_const(self, i):
+    def _loadc(self, i):
         self.registers[i[0] & 0x0F] = i[1]
 
     def _copy(self, i):
