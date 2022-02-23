@@ -64,6 +64,8 @@ class CPU:
             self.pointer = ubyte(0)
         
     def next_instruction(self):
+        print(self.registers)
+        print(self.pointer)
         self.has_jumped = False
 
         i = self.instructions[self.pointer : self.pointer + 2]
@@ -74,7 +76,7 @@ class CPU:
 
 if __name__ == "__main__":
     cpu = CPU()
-    cpu.read("hello.txt")
+    cpu.read("testo.txt")
 
     while True:
         cpu.next_instruction()

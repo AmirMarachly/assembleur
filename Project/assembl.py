@@ -3,12 +3,10 @@ import os
 import re
 
 class Assembl:
-    def __init__(self, filename):
+    def __init__(self):
         self._init_operations()
         self.instructions = []
-
-        with open(filename) as file:
-            self._read_instr(file)
+        self.labels = {}
 
     def _init_operations(self):
         self.operations = []
@@ -45,7 +43,7 @@ class Assembl:
         self.instructions.append((line, bytes([reg, mem])))
 
     def _jumpz(self, op, line):
-        pass
+        self.instructions.append((line, None))
 
     def _add(self, op, line):
         match = re.match(op, line)
@@ -105,7 +103,9 @@ class Assembl:
         self.instructions.append((line, bytes([0xF0, 0x00])))
 
     def _label(self, op, line):
-        pass
+        match = re.match(op, line)
+        label = match.group(1)
+        self.labels[label] = len(self.instructions) * 2
 
     def _read_instr(self, file):
         for line in file:
@@ -114,6 +114,37 @@ class Assembl:
             if line:
                 [op[1](op[0], line) for op in self.operations if re.match(op[0], line)]
 
+        self._create_jumps()
+
+    def _create_jumps(self):
+        jump_op = self.operations[2]
+
+        for i, instr in enumerate(self.instructions):
+            if instr[1] is None:
+                match = re.match(jump_op[0], instr[0])
+                reg = ord(match.group(1)) - ord("A")
+                reg += 0x20
+                label = match.group(2)
+                mem = self.labels[label]
+
+                self.instructions[i] = (instr[0], bytes([reg, mem]))
+
+    def _write_instr(self, file):
+        for instr in self.instructions:
+            file.write(instr[1])
+
+    def assemble(self, input_filename, output_filename):
+        self.instructions.clear()
+        self.labels.clear()
+        
+        with open(input_filename) as file:
+            self._read_instr(file)
+
+        with open(output_filename, "wb+") as file:
+            self._write_instr(file)
+
 if __name__ == "__main__":
-    a = Assembl("test.txt")
+    a = Assembl()
+    a.assemble("test.txt", "testo.txt")
     print(a.instructions)
+    print(a.labels)
