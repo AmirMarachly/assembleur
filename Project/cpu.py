@@ -15,7 +15,7 @@ class CPU:
 
         self.operations[0] = self._loadm
         self.operations[1] = self._store
-        self.operations[2] = self._jump
+        self.operations[2] = self._jumpz
         self.operations[3] = self._add
         self.operations[4] = self._sub
         self.operations[5] = self._dec
@@ -30,7 +30,7 @@ class CPU:
     def _store(self, i):
         self.memory[i[1]] = self.registers[i[0] & 0x0F]
 
-    def _jump(self, i):
+    def _jumpz(self, i):
         if self.registers[i[0] & 0x0F] == ubyte(0):
             self.pointer = i[1]
             self.has_jumped = True
@@ -54,21 +54,19 @@ class CPU:
         self.registers[i[0] & 0x0F] = self.registers[i[1] >> 4]
 
     def _stop(self, i):
-        print(self.registers)
-        print(self.memory)
         sys.exit(0)
     
-    def read(self, filename):
+    def load(self, filename):
         with open(filename, "rb") as file:
-            self.instructions = file.read()
+            instr = file.read()
+            instr = instr[:256]
+            self.memory[:len(instr)] = instr
             self.pointer = ubyte(0)
         
     def next_instruction(self):
-        print(self.registers)
-        print(self.pointer)
         self.has_jumped = False
 
-        i = self.instructions[self.pointer : self.pointer + 2]
+        i = self.memory[self.pointer : self.pointer + 2]
         self.operations[i[0] >> 4]([ubyte(i[0]), ubyte(i[1])])
         
         if not self.has_jumped:
@@ -76,7 +74,7 @@ class CPU:
 
 if __name__ == "__main__":
     cpu = CPU()
-    cpu.read("testo.txt")
+    cpu.load("testo.txt")
 
     while True:
         cpu.next_instruction()

@@ -1,8 +1,6 @@
-import sys
-import os
 import re
 
-class Assembl:
+class Assembler:
     def __init__(self):
         self._init_operations()
         self.instructions = []
@@ -144,7 +142,7 @@ class Assembl:
             self._write_instr(file)
 
 if __name__ == "__main__":
-    a = Assembl()
+    a = Assembler()
     a.assemble("test.txt", "testo.txt")
     print(a.instructions)
     print(a.labels)
