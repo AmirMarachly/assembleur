@@ -1,28 +1,30 @@
 import os
 import curses
+import sys
 
 from cpu import CPU
 from assembler import Assembler
 
 class Stepper:
-    def __init__(self, filename):
-        self.assembler = Assembler()
+    def __init__(self, filename, start=0):
+        self.assembler = Assembler(start)
         self.cpu = CPU()
-        self.pointer = 0
         self.offset = 0
+        self.start = start
         self.autoscroll = True
 
         pre, ext = os.path.splitext(filename)
         output = f"{pre}.o"
 
         self.assembler.assemble(filename, output)
-        self.cpu.load(output)
+        self.cpu.load(output, start)
+        self.pointer = self.cpu.pointer
 
     def _hex(self, x):
         return bytes([x]).hex().upper()
 
     def _display_registers(self, stdscr):
-        labels = ""
+        labels = "" 
         content = ""
 
         for i, reg in enumerate(self.cpu.registers):
@@ -49,8 +51,11 @@ class Stepper:
         return " " * width
 
     def _current_instruction(self, a):
+        if a - self.start < 0:
+            return ""
+
         try:
-            return self.assembler.instructions[a // 2][0]
+            return self.assembler.instructions[(a - self.start) // 2][0]
 
         except IndexError:
             return ""
@@ -87,27 +92,33 @@ class Stepper:
         s = ""
 
         for i in range(16):
-            s += f"{self._hex(i)} "
+            s += f"X{self._hex(i)[1]} "
 
         stdscr.addstr(START_Y + 2, START_X, s)
 
         for i in range(16):
-            s = f"{self._hex(i * 16)}  "
+            s = f"{self._hex(i * 16)[0]}X"
+            stdscr.addstr(START_Y + i + 4, START_X - 4, s)
 
             for j in range(16):
-                s += f"{self._hex(self.cpu.memory[i * 16 + j])} "
+                m = i * 16 + j
+                s = f"{self._hex(self.cpu.memory[m])}"
 
-            stdscr.addstr(START_Y + i + 4, START_X - 4, s)
+                if m == self.cpu.current_memory:
+                    stdscr.addstr(START_Y + i + 4, START_X + j * 3, s, curses.A_STANDOUT)
+
+                else:
+                    stdscr.addstr(START_Y + i + 4, START_X + j * 3, s)
 
     def _display(self, stdscr):
         y, x = stdscr.getmaxyx()
 
-        stdscr.clear()
+        stdscr.erase()
         self._display_registers(stdscr)
         self._display_instructions(stdscr)
         self._display_memory(stdscr)
-        stdscr.addstr(y - 2, x - 36, "SPACE/ENTER: next instruction")
-        stdscr.addstr(y - 1, x - 36, "A: toggle autoscroll ARROWS: scroll")
+        stdscr.addstr(y - 2, x - 38, "SPACE/ENTER: next instruction, Q: quit")
+        stdscr.addstr(y - 1, x - 38, "A: toggle autoscroll, ARROWS: scroll")
         stdscr.refresh()
 
     def _next(self):
@@ -118,7 +129,7 @@ class Stepper:
         stdscr.keypad(1)
         key = ""
 
-        while key != ord("e"):
+        while key != ord("q"):
             if key == ord("\n") or key == ord(" "):
                 self._next()
 
@@ -139,5 +150,35 @@ class Stepper:
             key = stdscr.getch()
 
 if __name__ == "__main__":
-    s = Stepper("test.txt")
-    curses.wrapper(s.loop)
+    if len(sys.argv) < 2:
+        print("Need at least one argument, the file to run")
+        sys.exit(1)
+
+    if sys.argv[1] in ("--help", "-h"):
+        print("Run the given assembly file step by step")
+        print("\tFirst argument: the file")
+        print("\tSecond arguement (optional): the starting pointer")
+        sys.exit(0)
+
+    try:
+        try:
+            p = int(sys.argv[2], 16)
+
+            if p % 2 != 0:
+                print("Starting pointer must be pair")
+                sys.exit(1)
+
+            s = Stepper(sys.argv[1], p)
+
+        except ValueError:
+                print("Starting pointer must be a number")
+                sys.exit(1)
+    
+    except IndexError:
+        s = Stepper(sys.argv[1])
+
+    try:
+        curses.wrapper(s.loop)
+
+    except KeyboardInterrupt:
+        sys.exit()
