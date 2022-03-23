@@ -5,8 +5,18 @@ import sys
 from cpu import CPU
 from assembler import Assembler
 
-class Stepper:
+class StepAssembly:
+    """
+    The StepAssembly class allows the read an assembly file and call the
+    instructions step by step
+    """
     def __init__(self, filename, start=0):
+        """
+        Loads the file, assembles it, and loads the assembled code into the CPU
+        
+        :param filename: The name of the file to assemble
+        :param start: The address to start the program at, defaults to 0 (optional)
+        """
         self.assembler = Assembler(start)
         self.cpu = CPU()
         self.offset = 0
@@ -21,9 +31,20 @@ class Stepper:
         self.pointer = self.cpu.pointer
 
     def _hex(self, x):
+        """
+        Convert a number to a hexadecimal string
+        
+        :param x: The number to be converted to hexadecimal
+        :return: The hexadecimal representation of the bytes
+        """
         return bytes([x]).hex().upper()
 
     def _display_registers(self, stdscr):
+        """
+        Display the registers of the CPU
+        
+        :param stdscr: the window object
+        """
         labels = "" 
         content = ""
 
@@ -38,6 +59,12 @@ class Stepper:
         stdscr.addstr(2, 1, content)
 
     def _current_label(self, a):
+        """
+        Return the label name for the current address
+        
+        :param a: The address of the current instruction
+        :return: The current label
+        """
         width = 4
 
         for key, value in self.assembler.labels.items():
@@ -51,6 +78,12 @@ class Stepper:
         return " " * width
 
     def _current_instruction(self, a):
+        """
+        Return the current instruction
+        
+        :param a: The address of the current instruction
+        :return: The current instruction being executed.
+        """
         if a - self.start < 0:
             return ""
 
@@ -61,6 +94,11 @@ class Stepper:
             return ""
 
     def _display_instructions(self, stdscr):
+        """
+        Display the current instruction and memory address
+        
+        :param stdscr: the window object
+        """
         y, x = stdscr.getmaxyx()
         START_X = 2
         START_Y = (y - 6) // 2
@@ -85,6 +123,11 @@ class Stepper:
                 pass
 
     def _display_memory(self, stdscr):
+        """
+        Display the memory of the CPU
+        
+        :param stdscr: the window object
+        """
         y, x = stdscr.getmaxyx()
         START_X = x - 47
         START_Y = (y - 22) // 2
@@ -111,6 +154,11 @@ class Stepper:
                     stdscr.addstr(START_Y + i + 4, START_X + j * 3, s)
 
     def _display(self, stdscr):
+        """
+        Display the registers, instructions, and memory
+        
+        :param stdscr: the window object
+        """
         y, x = stdscr.getmaxyx()
 
         stdscr.erase()
@@ -122,10 +170,18 @@ class Stepper:
         stdscr.refresh()
 
     def _next(self):
+        """
+        Call the next instruction on the CPU and update the pointer
+        """
         self.cpu.next_instruction()
         self.pointer = self.cpu.pointer
 
     def loop(self, stdscr):
+        """
+        The main loop of the program, wait for a key and display the CPU
+        
+        :param stdscr: the window object
+        """
         stdscr.keypad(1)
         key = ""
 
@@ -168,14 +224,14 @@ if __name__ == "__main__":
                 print("Starting pointer must be pair")
                 sys.exit(1)
 
-            s = Stepper(sys.argv[1], p)
+            s = StepAssembly(sys.argv[1], p)
 
         except ValueError:
                 print("Starting pointer must be a number")
                 sys.exit(1)
     
     except IndexError:
-        s = Stepper(sys.argv[1])
+        s = StepAssembly(sys.argv[1])
 
     try:
         curses.wrapper(s.loop)
