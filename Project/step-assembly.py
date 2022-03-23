@@ -227,8 +227,8 @@ if __name__ == "__main__":
             s = StepAssembly(sys.argv[1], p)
 
         except ValueError:
-                print("Starting pointer must be a number")
-                sys.exit(1)
+            print("Starting pointer must be a number")
+            sys.exit(1)
     
     except IndexError:
         s = StepAssembly(sys.argv[1])
@@ -237,4 +237,8 @@ if __name__ == "__main__":
         curses.wrapper(s.loop)
 
     except KeyboardInterrupt:
-        sys.exit()
+        sys.exit(0)
+
+    except curses.error:
+        print("The screen is too small")
+        sys.exit(1)
